@@ -1,5 +1,5 @@
-<# Developed by Jacques Boucher
-    Date: 7 Nov 2022
+﻿<# Developed by Jacques Boucher
+    Date: 31 Jul 2024
     Bug fixes: 1-Script wasn't working if you only selected one file to hash.
                  It worked fine when selecting more than one. Added a check
                  of the variable type. If a string, it means the user only selected
@@ -8,6 +8,8 @@
                2-Also moved the second assignment of $csvFile to after $tFile is assigned.
                  In the previous version it was assigned at the start of the script which wouldn't
                  have resulted in the correct assignment as $tFile was not yet declared at that point.
+
+               3-On 31 Jul 2024, added -LiteralPath to Out-File commands, as it was otherwise resulting in an error when the path contained square brackets.
 
     Enhancements: 1 - Added variables for each type of supported hash. You can edit the script
                       to have it calculate the hash(es) you prefer.
@@ -41,7 +43,7 @@ $hashes = [Ordered]@{MacTripleDES=$MACTripleDesHash; MD5=$md5Hash; RIPEMD160=$RI
 ForEach ($hash in $hashes.keys) { <# Loop through the dictionary keys, which are the hashing algorithms supported by PowerShell #>
    if($hashes.$hash) <# If the associated value is 1, then add to header. #>
        {
-       $csvheader = $csvHeader + ", " + $hash
+       $csvheader = $csvHeader + "," + $hash
        }
    }
 
@@ -111,19 +113,19 @@ if($originalFiles.GetType().Name -eq "String") <# Only selected 1 file to hash, 
         }
 
 $csvFile = (($tFile.Directory.FullName) + "\" + $csvFile)
-"sep=," | Out-File $csvFile <# Writes instructions to Excel (first line of csv) that the separator is a comma #>
-$csvHeader | Out-File -Append $csvFile <# Write header #>
+"sep=," | Out-File -LiteralPath $csvFile <# Writes instructions to Excel (first line of csv) that the separator is a comma #>
+$csvHeader | Out-File -Append -LiteralPath $csvFile <# Write header #>
 
 ForEach ($originalFileTemp in $originalFiles) {
     $originalFile = Get-ChildItem -LiteralPath $originalFileTemp <# converts string to filename #>
-    $csvLine = $originalFile.Name + ", " + $originalFile.Directory
+    $csvLine = $originalFile.Name + "," + $originalFile.Directory
     Write-Host "Hashing $originalFile"
      ForEach ($hash in $hashes.keys) { <# Loop through the dictionary keys, which are the hashing algorithms supported by PowerShell #>
         if($hashes.$hash) <# If the associated value is 1, then calculate that hash. #>
             {
             $tHash = Get-FileHash -Algorithm $hash -LiteralPath $originalFile
-            $csvLine = $csvLine + ", " + $tHash.Hash
+            $csvLine = $csvLine + "," + $tHash.Hash
             }
         }
-    $csvLine | Out-File -Append $csvFile
+    $csvLine | Out-File -Append -LiteralPath $csvFile
     }
